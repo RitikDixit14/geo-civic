@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:15-3.3
+    container_name: cir_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: city_issue_reporter
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/01_init.sql
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02_seed.sql
+      - db_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  ai-service:
+    build: ./ai-service
+    container_name: cir_ai
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./ai-service:/app
+    environment:
+      - MODEL_MODE=demo
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: cir_backend
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/city_issue_reporter
+      - JWT_SECRET=change_this_secret
+      - PORT=4000
+      - AI_SERVICE_URL=http://ai-service:8000
+      - FRONTEND_URL=http://localhost:5173
+      - UPLOAD_DIR=uploads
+    depends_on:
+      - db
+      - ai-service
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: cir_frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - VITE_API_URL=http://localhost:4000/api
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  db_data:
