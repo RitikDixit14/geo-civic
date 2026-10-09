@@ -4,7 +4,8 @@ import base64
 from PIL import Image
 import io
 
-api_key = 'AQ.Ab8RN6I6FKNy6LMdXNVqqlaVHYaEfV_PeNWQWI8xE5fXiMGGJQ'
+import os
+api_key = os.getenv('GEMINI_API_KEY', 'YOUR_API_KEY_HERE')
 
 img = Image.new('RGB', (100, 100), color = 'red')
 img_byte_arr = io.BytesIO()
